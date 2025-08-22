@@ -4,3 +4,6 @@
 .Ruserdata
 
 /.quarto/
+
+00_data/
+00_data/*

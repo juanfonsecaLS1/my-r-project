@@ -1,0 +1,54 @@
+---
+title: "Download Data"
+format: html
+---
+
+
+Loading packages
+```{r}
+library(tidyverse)
+library(sf)
+library(tmap)
+```
+
+
+# Downloading data
+
+## Road network
+
+```{r}
+if(!file.exists("00_data/oproad_gpkg_gb.zip")){
+  dir.create("00_data",showWarnings = F)
+  u <- "https://api.os.uk/downloads/v1/products/OpenRoads/downloads?area=GB&format=GeoPackage&redirect"
+  options(timeout = 360)
+  download.file(u, destfile = "00_data/oproad_gpkg_gb.zip", mode = "wb")
+  unzip("00_data/oproad_gpkg_gb.zip",exdir = "00_data")
+}
+
+```
+
+## Road Statistics - Flows
+
+```{r}
+u <- https://storage.googleapis.com/dft-statistics/road-traffic/downloads/data-gov-uk/dft_traffic_counts_aadf.zip
+f <- file.path("00_data",basename(u))
+if(!file.exists(file.path("00_datamrdb-2024.zip")){
+    
+    f = "00_data/mrdb-2024.zip"
+    download.file(u,destfile = f)
+    unzip(f,exdir = "00_data")
+}
+
+```
+
+## Road Statistics - Network
+
+```{r}
+if(!file.exists("00_data/mrdb-2024.zip")){
+    u = "https://storage.googleapis.com/dft-statistics/road-traffic/mrdb-2024.zip"
+    f = "00_data/mrdb-2024.zip"
+    download.file(u,destfile = f)
+    unzip(f,exdir = "00_data")
+}
+
+```
