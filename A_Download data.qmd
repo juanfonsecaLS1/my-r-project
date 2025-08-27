@@ -14,41 +14,131 @@ library(tmap)
 
 # Downloading data
 
-## Road network
+## Road network - Open Roads from OS
 
 ```{r}
-if(!file.exists("00_data/oproad_gpkg_gb.zip")){
+u <- "https://api.os.uk/downloads/v1/products/OpenRoads/downloads?area=GB&format=GeoPackage&redirect"
+f <- file.path("00_data","oproad_gpkg_gb.zip")
+
+if(!file.exists(f)){
   dir.create("00_data",showWarnings = F)
-  u <- "https://api.os.uk/downloads/v1/products/OpenRoads/downloads?area=GB&format=GeoPackage&redirect"
   options(timeout = 360)
-  download.file(u, destfile = "00_data/oproad_gpkg_gb.zip", mode = "wb")
-  unzip("00_data/oproad_gpkg_gb.zip",exdir = "00_data")
+  download.file(u, destfile = f, mode = "wb")
+  unzip(f, exdir = "00_data")
+}
+```
+
+## Post code locations - Open PointCode from OS
+
+```{r}
+u <- "https://api.os.uk/downloads/v1/products/CodePointOpen/downloads?area=GB&format=GeoPackage&redirect"
+f <- file.path("00_data","opopenpoint_gpkg_gb.zip")
+
+if(!file.exists(f)){
+  dir.create("00_data",showWarnings = F)
+  options(timeout = 360)
+  download.file(u, destfile = f, mode = "wb")
+  unzip(f, exdir = "00_data")
+}
+```
+
+## Built Up areas
+
+```{r}
+u <- "https://api.os.uk/downloads/v1/products/BuiltUpAreas/downloads?area=GB&format=GeoPackage&redirect"
+
+
+f <- file.path("00_data","opbuiltup_gpkg_gb.zip")
+
+if(!file.exists(f)){
+  dir.create("00_data",showWarnings = F)
+  options(timeout = 360)
+  download.file(u, destfile = f, mode = "wb")
+  unzip(f, exdir = "00_data")
 }
 
 ```
 
-## Road Statistics - Flows
+## Territorial Boundaries - BorderLine from OS
 
 ```{r}
-u <- https://storage.googleapis.com/dft-statistics/road-traffic/downloads/data-gov-uk/dft_traffic_counts_aadf.zip
+u <- "https://api.os.uk/downloads/v1/products/BoundaryLine/downloads?area=GB&format=GeoPackage&redirect"
+
+f <- file.path("00_data","op_boundaryline.zip")
+
+if(!file.exists(f)){
+  dir.create("00_data",showWarnings = F)
+  options(timeout = 360)
+  download.file(u, destfile = f, mode = "wb")
+  unzip(f, exdir = "00_data")
+}
+```
+
+## Road Statistics - Flows from DfT
+
+```{r}
+u <- "https://storage.googleapis.com/dft-statistics/road-traffic/downloads/data-gov-uk/dft_traffic_counts_aadf.zip"
 f <- file.path("00_data",basename(u))
-if(!file.exists(file.path("00_datamrdb-2024.zip")){
-    
-    f = "00_data/mrdb-2024.zip"
+
+if(!file.exists(f)){
     download.file(u,destfile = f)
     unzip(f,exdir = "00_data")
 }
-
 ```
 
-## Road Statistics - Network
+
+## Road Statistics - Network from DfT
 
 ```{r}
-if(!file.exists("00_data/mrdb-2024.zip")){
-    u = "https://storage.googleapis.com/dft-statistics/road-traffic/mrdb-2024.zip"
-    f = "00_data/mrdb-2024.zip"
+u <- "https://storage.googleapis.com/dft-statistics/road-traffic/mrdb-2024.zip"
+f <- file.path("00_data",basename(u))
+
+if(!file.exists(f)){
     download.file(u,destfile = f)
     unzip(f,exdir = "00_data")
 }
+```
 
+
+## Population Estimates - Post code based from NOMIS
+
+```{r}
+u <- "https://www.nomisweb.co.uk/output/census/2021/pcd_p001.csv"
+f <- file.path("00_data",basename(u))
+
+if(!file.exists(f)){
+    download.file(u,destfile = f)
+}
+```
+
+## Workplace Population 
+
+### LSOA-based from NOMIS
+
+```{r}
+u <- "https://www.nomisweb.co.uk/output/census/2021/wp001.zip"
+f <- file.path("00_data",basename(u))
+
+if(!file.exists(f)){
+    download.file(u,destfile = f)
+    unzip(f,exdir = "00_data")
+}
+```
+
+### MSOA-based by industry from NOMIS
+
+```{r}
+u <- "https://www.nomisweb.co.uk/output/census/2021/wp005.zip"
+f <- file.path("00_data",basename(u))
+
+if(!file.exists(f)){
+    download.file(u,destfile = f)
+    unzip(f,exdir = "00_data")
+}
+```
+
+## Census boundaries
+
+```{r}
+# devtools::install_github("humaniverse/geographr")
 ```
