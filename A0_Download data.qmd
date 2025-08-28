@@ -1,16 +1,9 @@
 ---
 title: "Download Data"
 format: html
+execute: 
+  eval: false
 ---
-
-
-Loading packages
-```{r}
-library(tidyverse)
-library(sf)
-library(tmap)
-```
-
 
 # Downloading data
 

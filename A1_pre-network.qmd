@@ -1,0 +1,46 @@
+---
+title: "Pre-Processing Network"
+---
+
+```{r}
+#| label: pkgs-loading
+#| message: false
+
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+if (!require("remotes")) install.packages("remotes")
+pkgs = c(
+    "sf",
+    "tidyverse"
+)
+
+remotes::install_cran(pkgs)
+sapply(pkgs, require, character.only = TRUE)
+```
+
+Loading Country boundary
+```{r}
+england_boundary <- st_read(
+    dsn ="00_data/Data/bdline_gb.gpkg",
+    query = "SELECT * FROM \"country_region\" WHERE Name == 'England' OR Name == 'Wales'")
+
+plot(england_boundary$geometry)
+
+geom_filter <- england_boundary |>
+    st_concave_hull(ratio = 0.1) |>
+    st_as_sfc() 
+```
+
+Loading OS OpenRoads for England
+
+```{r}
+england_roads <- st_read(
+  "00_data/Data/oproad_gb.gpkg",
+  query = "SELECT * FROM \"road_link\" WHERE road_function NOT LIKE '%access%'")[geom_filter,]
+```
+
+Saving sub-set
+
+```{r}
+dir.create("01_tidy_data")
+st_write(england_roads,"01_tidy_data/eng_roads.gpkg",append = FALSE)
+```

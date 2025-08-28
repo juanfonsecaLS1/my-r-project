@@ -7,3 +7,9 @@
 
 00_data/
 00_data/*
+
+01_tidy_data/
+01_tidy_data/*
+# pixi environments
+.pixi
+*.egg-info
