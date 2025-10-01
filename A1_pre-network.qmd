@@ -7,10 +7,12 @@ title: "Pre-Processing Network"
 #| message: false
 
 options(repos = c(CRAN = "https://cloud.r-project.org"))
-if (!require("remotes")) install.packages("remotes")
+if (!require("remotes")) {
+  install.packages("remotes")
+}
 pkgs = c(
-    "sf",
-    "tidyverse"
+  "sf",
+  "tidyverse"
 )
 
 remotes::install_cran(pkgs)
@@ -20,27 +22,45 @@ sapply(pkgs, require, character.only = TRUE)
 Loading Country boundary
 ```{r}
 england_boundary <- st_read(
-    dsn ="00_data/Data/bdline_gb.gpkg",
-    query = "SELECT * FROM \"country_region\" WHERE Name == 'England' OR Name == 'Wales'")
+  dsn = "00_data/Data/bdline_gb.gpkg",
+  query = "SELECT * FROM \"country_region\" WHERE Name == 'England' OR Name == 'Wales'"
+)
 
 plot(england_boundary$geometry)
 
 geom_filter <- england_boundary |>
-    st_concave_hull(ratio = 0.1) |>
-    st_as_sfc() 
+  st_union() |>
+  st_concave_hull(ratio = 0.1) |>
+  st_sfc()
+
+plot(geom_filter)
+```
+
+```{r}
+dir.create("01_tidy_data", showWarnings = F)
+st_write(geom_filter, "01_tidy_data/geom_filter.gpkg")
 ```
 
 Loading OS OpenRoads for England
 
 ```{r}
-england_roads <- st_read(
-  "00_data/Data/oproad_gb.gpkg",
-  query = "SELECT * FROM \"road_link\" WHERE road_function NOT LIKE '%access%'")[geom_filter,]
+if (!file.exists("01_tidy_data/eng_roads.gpkg")) {
+  england_roads <- st_read(
+    "00_data/Data/oproad_gb.gpkg",
+    query = "SELECT * FROM \"road_link\" WHERE road_function NOT LIKE '%access%'"
+  )[geom_filter, ]
+
+  st_write(england_roads, "01_tidy_data/eng_roads.gpkg", append = FALSE)
+}
+
 ```
 
-Saving sub-set
+Loading MRDB and subsetting the data
 
 ```{r}
-dir.create("01_tidy_data")
-st_write(england_roads,"01_tidy_data/eng_roads.gpkg",append = FALSE)
+if (!file.exists("01_tidy_data/eng_mrdb.gpkg")) {
+  MRDB <- sf::read_sf("00_data/MRDB_2024_published.shp")[geom_filter, ]
+  st_write(MRDB, "01_tidy_data/eng_mrdb.gpkg", append = FALSE)
+}
+
 ```

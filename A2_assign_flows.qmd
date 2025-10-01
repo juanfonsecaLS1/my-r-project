@@ -1,0 +1,332 @@
+---
+title: "Assign AADF to road Network"
+---
+
+Set-up
+
+```{r}
+#| label: pkgs-loading
+#| message: false
+
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+if (!require("remotes")) {
+  install.packages("remotes")
+}
+pkgs = c(
+  "sf",
+  "tidyverse",
+  "h3jsr",
+  "tmap",
+  "sfdep",
+  "future.apply",
+  "parallelly"
+)
+
+remotes::install_cran(pkgs)
+sapply(pkgs, require, character.only = TRUE)
+```
+
+Setting up the number of cores for parallel calculations
+
+```{r}
+number_of_cores <- availableCores()
+plan(multisession, workers = min(number_of_cores - 2))
+```
+
+
+```{r}
+eng_filter <- st_read("01_tidy_data/geom_filter.gpkg")
+```
+
+
+```{r}
+MRDB <- sf::read_sf("01_tidy_data/eng_mrdb.gpkg")
+object.size(MRDB) / 1e6 # 11 MB
+# mapview::mapview(MRDB)
+```
+
+```{r}
+open_roads <- sf::read_sf("01_tidy_data/eng_roads.gpkg")
+object.size(open_roads) / 1e6
+```
+
+# Major roads traffic
+```{r}
+aadt <- read_csv("00_data/dft_traffic_counts_aadf.csv")
+
+aadt_2024 <- aadt |> filter(year == 2024)
+
+MRDB_2024 <- MRDB |>
+  inner_join(aadt_2024, by = c("CP_Number" = "count_point_id"))
+
+# mapview::mapview(MRDB_2024, zcol = "all_motor_vehicles")
+
+```
+
+## Join counts to road network
+
+### Major roads
+
+Using the MRDB network
+```{r}
+open_roads_major <- open_roads |>
+  filter(road_function %in% c("A Road", "Motorway"))
+
+
+MRDB_clean <- MRDB_2024 |>
+  semi_join(aadt_2024, by = c("CP_Number" = "count_point_id"))
+```
+
+Finding differences
+
+```{r}
+diff_roads <- setdiff(
+  MRDB_clean$RoadNumber,
+  open_roads_major$road_classification_number
+)
+
+(MRDB_clean |> filter(RoadNumber %in% diff_roads) |> mapview::mapview())
+```
+
+Fixing differences with M6 Toll
+
+
+```{r}
+MRDB_clean$RoadNumber[MRDB_clean$RoadNumber == "M6(T)"] <- "M6 TOLL"
+```
+
+A quick look at a major road  in both networks
+
+```{r}
+(MRDB_clean |> filter(RoadNumber == "M1") |> mapview::mapview()) +
+  mapview::mapview(
+    open_roads_major |> filter(road_classification_number == "M1")
+  )
+```
+
+Producing nested version of the dataframes
+
+```{r}
+nested_MRDB <- MRDB_clean |>
+  nest(data = -RoadNumber)
+nested_open_roads_major <- open_roads_major |>
+  select(id, road_classification_number) |>
+  nest(data = -road_classification_number)
+```
+
+
+Joining nested dataframes
+
+```{r}
+nested_join <- nested_open_roads_major |>
+  inner_join(
+    nested_MRDB,
+    by = c("road_classification_number" = "RoadNumber"),
+    suffix = c(".or", "mrdb")
+  )
+```
+
+The correspondence is based on proximity. Each open roads 
+
+```{r}
+iters_ellipse <- list()
+
+for (i in 1:4) {
+  cat("running step: ", (0.05) * (i - 1), "\n")
+
+  iters_ellipse[[i]] <- future_lapply(
+    seq_along(nested_join$road_classification_number),
+    function(trow, step) {
+      step <- (0.5) * (i - 1)
+
+      t_mrdb <- nested_join$datamrdb[[trow]] |> select(CP_Number)
+
+      t_mrdb_ellipses <- t_mrdb |> st_centroid()
+      t_mrdb_ellipses$r1 <- t_mrdb |> st_length() |> as.numeric()
+
+      t_mrdb_ellipses$angle <- t_mrdb |>
+        st_coordinates() |>
+        as.data.frame() |>
+        mutate(Pn = row_number(), .by = L1) |>
+        pivot_wider(names_from = Pn, values_from = X:Y) |>
+        mutate(
+          dX = X_2 - X_1,
+          dY = Y_2 - Y_1,
+          tan_angle = dY / dX,
+          rad_angle = atan(tan_angle),
+          deg_angle = 180 * rad_angle / pi
+        ) |>
+        pull(deg_angle)
+
+      t_mrdb$geom_ellipse <- t_mrdb_ellipses |>
+        group_by(CP_Number) |>
+        mutate(
+          ellipse = st_ellipse(
+            geometry = geom,
+            sx = (0.5 + step) * r1,
+            sy = (0.4 + step) * r1,
+            rotation = angle
+          )
+        ) |>
+        st_set_geometry("ellipse") |>
+        ungroup() |>
+        st_cast("POLYGON") |>
+        st_geometry()
+
+      t_or <- nested_join$data.or[[trow]]
+
+      t_or$geom_points <- t_or |> st_line_sample(geom, n = 5)
+
+      t_or_multipoints <- t_or |>
+        st_set_geometry("geom_points") |>
+        select(-geom) |>
+        st_cast("POINT")
+
+      t_or_multipoints$weights <- rep(
+        c(3, 2, 1, 2, 3),
+        nrow(t_or_multipoints) / 5
+      )
+
+      mrdb_or_index <- st_within(
+        t_or_multipoints,
+        t_mrdb$geom_ellipse,
+        sparse = F
+      )
+      dist_matrix <- st_distance(t_or_multipoints, t_mrdb$geom)
+
+      dist_matrix[!mrdb_or_index] <- NA
+
+      # row.names(dist_matrix)<-t_or_multipoints$id
+      colnames(dist_matrix) <- as.character(t_mrdb$CP_Number)
+
+      tibble_corr <- as_tibble(dist_matrix)
+      tibble_corr$id <- t_or_multipoints$id
+      tibble_corr$w <- t_or_multipoints$weights
+
+      or2mdrdb_correspondence <- tibble_corr |>
+        pivot_longer(cols = -c(id, w), names_to = "CP_Number") |>
+        arrange(id, CP_Number, w) |>
+        mutate(across(value, as.numeric)) |>
+        summarise(
+          w.mean = weighted.mean(value, weights = w),
+          .by = c(id, CP_Number)
+        ) |>
+        drop_na() |>
+        slice_min(w.mean, by = id) |>
+        select(-w.mean)
+
+      or2mdrdb_correspondence
+    },
+    future.seed = TRUE
+  ) |>
+    bind_rows()
+}
+
+```
+
+
+Creating a bounding geometry for inspecting the results
+
+```{r}
+leeds_zones = zonebuilder::zb_zone("leeds", n_circles = 5) |>
+  st_transform(27700)
+bounds = sf::st_union(leeds_zones)
+```
+
+
+
+
+Joining the counts based on correspondence
+```{r}
+or_major_MRDB <- open_roads_major |>
+  left_join(net_correspondence, by = "id") |>
+  left_join(aadt_2024, by = c("Count_point_id" = "count_point_id"))
+
+
+mapview::mapview(or_major_MRDB[leeds_zones, ], zcol = "Count_point_id") +
+  mapview::mapview(MRDB_clean[leeds_zones, ], zcol = "CP_Number")
+```
+
+
+### Minor roads
+
+```{r}
+or_minor <- open_roads_scot |>
+  anti_join(
+    open_roads_scot_major |>
+      st_drop_geometry(),
+    by = "id"
+  )
+
+aadt_minor_2022 <- aadt |>
+  filter(year == 2022, region_name == "Scotland", road_type == "Minor") |>
+  anti_join(
+    or_major_MRDB |> st_drop_geometry(),
+    by = c("count_point_id" = "Count_point_id")
+  )
+```
+
+
+```{r}
+aadt_buffer_minor <- aadt_minor_2022 |>
+  st_union() |>
+  st_buffer(10) |>
+  st_transform(4326)
+```
+
+
+```{r}
+or_minor[aadt_buffer_minor, ] |>
+  mapview::mapview() +
+  mapview::mapview(aadt_minor_2022, color = "darkred")
+```
+
+Counts joined with the nearest minor road
+
+```{r}
+or_minor_aadt <- or_minor[aadt_buffer_minor, ] |> st_transform(27700)
+
+nearest_road <- aadt_minor_2022 |> st_nearest_feature(or_minor_aadt)
+
+aadt_minor_2022$id = or_minor_aadt$id[nearest_road]
+
+# Distance check
+aadt_minor_2022$f_dist = st_distance(
+  aadt_minor_2022,
+  or_minor_aadt[nearest_road, ],
+  by_element = T
+) |>
+  as.numeric()
+
+aadt_road_correspondence <- aadt_minor_2022 |>
+  st_drop_geometry() |>
+  filter(f_dist < 10) |>
+  select(count_point_id, id)
+
+or_minor_aadt <- or_minor |>
+  st_transform(27700) |>
+  left_join(aadt_road_correspondence, by = "id") |>
+  left_join(aadt_scotland_2022, by = c("count_point_id"))
+```
+
+
+```{r}
+st_write(
+  or_minor_aadt,
+  "OpenRoads_aadt.gpkg",
+  layer = "minor_roads",
+  delete_layer = T
+)
+st_write(
+  or_major_MRDB,
+  "OpenRoads_aadt.gpkg",
+  layer = "major_roads",
+  delete_layer = T
+)
+```
+
+```{bash, eval = false}
+gh release list
+gh release create v2
+gh release upload v2 OpenRoads_aadt.gpkg
+```

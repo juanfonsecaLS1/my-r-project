@@ -11,10 +11,10 @@ execute:
 
 ```{r}
 u <- "https://api.os.uk/downloads/v1/products/OpenRoads/downloads?area=GB&format=GeoPackage&redirect"
-f <- file.path("00_data","oproad_gpkg_gb.zip")
+f <- file.path("00_data", "oproad_gpkg_gb.zip")
 
-if(!file.exists(f)){
-  dir.create("00_data",showWarnings = F)
+if (!file.exists(f)) {
+  dir.create("00_data", showWarnings = F)
   options(timeout = 360)
   download.file(u, destfile = f, mode = "wb")
   unzip(f, exdir = "00_data")
@@ -25,10 +25,10 @@ if(!file.exists(f)){
 
 ```{r}
 u <- "https://api.os.uk/downloads/v1/products/CodePointOpen/downloads?area=GB&format=GeoPackage&redirect"
-f <- file.path("00_data","opopenpoint_gpkg_gb.zip")
+f <- file.path("00_data", "opopenpoint_gpkg_gb.zip")
 
-if(!file.exists(f)){
-  dir.create("00_data",showWarnings = F)
+if (!file.exists(f)) {
+  dir.create("00_data", showWarnings = F)
   options(timeout = 360)
   download.file(u, destfile = f, mode = "wb")
   unzip(f, exdir = "00_data")
@@ -41,10 +41,10 @@ if(!file.exists(f)){
 u <- "https://api.os.uk/downloads/v1/products/BuiltUpAreas/downloads?area=GB&format=GeoPackage&redirect"
 
 
-f <- file.path("00_data","opbuiltup_gpkg_gb.zip")
+f <- file.path("00_data", "opbuiltup_gpkg_gb.zip")
 
-if(!file.exists(f)){
-  dir.create("00_data",showWarnings = F)
+if (!file.exists(f)) {
+  dir.create("00_data", showWarnings = F)
   options(timeout = 360)
   download.file(u, destfile = f, mode = "wb")
   unzip(f, exdir = "00_data")
@@ -57,10 +57,10 @@ if(!file.exists(f)){
 ```{r}
 u <- "https://api.os.uk/downloads/v1/products/BoundaryLine/downloads?area=GB&format=GeoPackage&redirect"
 
-f <- file.path("00_data","op_boundaryline.zip")
+f <- file.path("00_data", "op_boundaryline.zip")
 
-if(!file.exists(f)){
-  dir.create("00_data",showWarnings = F)
+if (!file.exists(f)) {
+  dir.create("00_data", showWarnings = F)
   options(timeout = 360)
   download.file(u, destfile = f, mode = "wb")
   unzip(f, exdir = "00_data")
@@ -71,11 +71,11 @@ if(!file.exists(f)){
 
 ```{r}
 u <- "https://storage.googleapis.com/dft-statistics/road-traffic/downloads/data-gov-uk/dft_traffic_counts_aadf.zip"
-f <- file.path("00_data",basename(u))
+f <- file.path("00_data", basename(u))
 
-if(!file.exists(f)){
-    download.file(u,destfile = f)
-    unzip(f,exdir = "00_data")
+if (!file.exists(f)) {
+  download.file(u, destfile = f)
+  unzip(f, exdir = "00_data")
 }
 ```
 
@@ -84,11 +84,11 @@ if(!file.exists(f)){
 
 ```{r}
 u <- "https://storage.googleapis.com/dft-statistics/road-traffic/mrdb-2024.zip"
-f <- file.path("00_data",basename(u))
+f <- file.path("00_data", basename(u))
 
-if(!file.exists(f)){
-    download.file(u,destfile = f)
-    unzip(f,exdir = "00_data")
+if (!file.exists(f)) {
+  download.file(u, destfile = f)
+  unzip(f, exdir = "00_data")
 }
 ```
 
@@ -97,10 +97,10 @@ if(!file.exists(f)){
 
 ```{r}
 u <- "https://www.nomisweb.co.uk/output/census/2021/pcd_p001.csv"
-f <- file.path("00_data",basename(u))
+f <- file.path("00_data", basename(u))
 
-if(!file.exists(f)){
-    download.file(u,destfile = f)
+if (!file.exists(f)) {
+  download.file(u, destfile = f)
 }
 ```
 
@@ -110,11 +110,11 @@ if(!file.exists(f)){
 
 ```{r}
 u <- "https://www.nomisweb.co.uk/output/census/2021/wp001.zip"
-f <- file.path("00_data",basename(u))
+f <- file.path("00_data", basename(u))
 
-if(!file.exists(f)){
-    download.file(u,destfile = f)
-    unzip(f,exdir = "00_data")
+if (!file.exists(f)) {
+  download.file(u, destfile = f)
+  unzip(f, exdir = "00_data")
 }
 ```
 
@@ -122,11 +122,11 @@ if(!file.exists(f)){
 
 ```{r}
 u <- "https://www.nomisweb.co.uk/output/census/2021/wp005.zip"
-f <- file.path("00_data",basename(u))
+f <- file.path("00_data", basename(u))
 
-if(!file.exists(f)){
-    download.file(u,destfile = f)
-    unzip(f,exdir = "00_data")
+if (!file.exists(f)) {
+  download.file(u, destfile = f)
+  unzip(f, exdir = "00_data")
 }
 ```
 
